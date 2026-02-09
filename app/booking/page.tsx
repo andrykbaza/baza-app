@@ -1,3 +1,8 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import { type ChangeEvent, type FormEvent, useMemo, useState } from "react";
+
 const steps = [
   {
     title: "Обрати послугу",
@@ -13,7 +18,77 @@ const steps = [
   }
 ];
 
+const services = [
+  { label: "Запис вокалу / інструментів", deposit: 1500 },
+  { label: "Зведення", deposit: 1200 },
+  { label: "Мастеринг", deposit: 900 },
+  { label: "Пісня під ключ", deposit: 2000 }
+];
+
+const defaultService = services[0];
+
 export default function BookingPage() {
+  const router = useRouter();
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    service: defaultService.label,
+    date: "",
+    time: "",
+    duration: 2,
+    comment: ""
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const depositAmount = useMemo(() => {
+    return services.find((service) => service.label === formData.service)?.deposit ?? 1500;
+  }, [formData.service]);
+
+  const handleChange =
+    (field: keyof typeof formData) =>
+    (event: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+      const value = field === "duration" ? Number(event.target.value) : event.target.value;
+      setFormData((prev) => ({ ...prev, [field]: value }));
+    };
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsSubmitting(true);
+    setErrorMessage(null);
+
+    try {
+      const response = await fetch("/api/booking", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          service: formData.service,
+          date: formData.date
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error("Unable to create booking.");
+      }
+
+      const data = await response.json();
+      const bookingId = data?.booking?.id as string | undefined;
+
+      if (!bookingId) {
+        throw new Error("Booking ID is missing.");
+      }
+
+      router.push(`/booking/confirmation?bookingId=${bookingId}&price=${depositAmount}`);
+    } catch (error) {
+      setErrorMessage("Не вдалося створити бронювання. Спробуйте ще раз.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <section className="space-y-10">
       <header>
@@ -36,13 +111,18 @@ export default function BookingPage() {
         ))}
       </div>
 
-      <form className="rounded-3xl border border-slate-800/60 bg-slate-900/60 p-8">
+      <form
+        className="rounded-3xl border border-slate-800/60 bg-slate-900/60 p-8"
+        onSubmit={handleSubmit}
+      >
         <div className="grid gap-6 md:grid-cols-2">
           <label className="flex flex-col gap-2 text-sm font-medium text-slate-200">
             Імʼя та прізвище
             <input
               className="rounded-xl border border-slate-800 bg-slate-950/60 px-4 py-3 text-sm text-slate-100 focus:border-purple-400 focus:outline-none"
               placeholder="Артем Коваль"
+              value={formData.name}
+              onChange={handleChange("name")}
               type="text"
             />
           </label>
@@ -51,6 +131,8 @@ export default function BookingPage() {
             <input
               className="rounded-xl border border-slate-800 bg-slate-950/60 px-4 py-3 text-sm text-slate-100 focus:border-purple-400 focus:outline-none"
               placeholder="artist@email.com"
+              value={formData.email}
+              onChange={handleChange("email")}
               type="email"
             />
           </label>
@@ -59,22 +141,31 @@ export default function BookingPage() {
             <input
               className="rounded-xl border border-slate-800 bg-slate-950/60 px-4 py-3 text-sm text-slate-100 focus:border-purple-400 focus:outline-none"
               placeholder="+38 (0__) ___ __ __"
+              value={formData.phone}
+              onChange={handleChange("phone")}
               type="tel"
             />
           </label>
           <label className="flex flex-col gap-2 text-sm font-medium text-slate-200">
             Послуга
-            <select className="rounded-xl border border-slate-800 bg-slate-950/60 px-4 py-3 text-sm text-slate-100 focus:border-purple-400 focus:outline-none">
-              <option>Запис вокалу / інструментів</option>
-              <option>Зведення</option>
-              <option>Мастеринг</option>
-              <option>Пісня під ключ</option>
+            <select
+              className="rounded-xl border border-slate-800 bg-slate-950/60 px-4 py-3 text-sm text-slate-100 focus:border-purple-400 focus:outline-none"
+              value={formData.service}
+              onChange={handleChange("service")}
+            >
+              {services.map((service) => (
+                <option key={service.label} value={service.label}>
+                  {service.label}
+                </option>
+              ))}
             </select>
           </label>
           <label className="flex flex-col gap-2 text-sm font-medium text-slate-200">
             Дата
             <input
               className="rounded-xl border border-slate-800 bg-slate-950/60 px-4 py-3 text-sm text-slate-100 focus:border-purple-400 focus:outline-none"
+              value={formData.date}
+              onChange={handleChange("date")}
               type="date"
             />
           </label>
@@ -82,6 +173,8 @@ export default function BookingPage() {
             Час
             <input
               className="rounded-xl border border-slate-800 bg-slate-950/60 px-4 py-3 text-sm text-slate-100 focus:border-purple-400 focus:outline-none"
+              value={formData.time}
+              onChange={handleChange("time")}
               type="time"
             />
           </label>
@@ -91,6 +184,8 @@ export default function BookingPage() {
               className="rounded-xl border border-slate-800 bg-slate-950/60 px-4 py-3 text-sm text-slate-100 focus:border-purple-400 focus:outline-none"
               min="1"
               placeholder="2"
+              value={formData.duration}
+              onChange={handleChange("duration")}
               type="number"
             />
           </label>
@@ -99,14 +194,24 @@ export default function BookingPage() {
             <textarea
               className="min-h-[120px] rounded-xl border border-slate-800 bg-slate-950/60 px-4 py-3 text-sm text-slate-100 focus:border-purple-400 focus:outline-none"
               placeholder="Опишіть задачу, референси, побажання."
+              value={formData.comment}
+              onChange={handleChange("comment")}
             />
           </label>
         </div>
+        {errorMessage ? (
+          <p className="mt-4 text-sm text-rose-200">{errorMessage}</p>
+        ) : (
+          <p className="mt-4 text-sm text-slate-300">
+            Депозит за бронювання: <span className="font-semibold text-white">{depositAmount} ₴</span>
+          </p>
+        )}
         <button
-          className="mt-6 rounded-full bg-purple-500 px-6 py-3 text-sm font-semibold text-white transition hover:bg-purple-400"
-          type="button"
+          className="mt-6 rounded-full bg-purple-500 px-6 py-3 text-sm font-semibold text-white transition hover:bg-purple-400 disabled:cursor-not-allowed disabled:opacity-70"
+          type="submit"
+          disabled={isSubmitting}
         >
-          Надіслати заявку
+          {isSubmitting ? "Надсилаємо..." : "Надіслати заявку"}
         </button>
       </form>
     </section>

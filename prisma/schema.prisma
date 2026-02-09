@@ -8,10 +8,14 @@ datasource db {
 }
 
 model Booking {
-  id        String   @id @default(cuid())
-  name      String
-  email     String
-  service   String
-  date      DateTime
-  createdAt DateTime @default(now())
+  id                    String   @id @default(cuid())
+  name                  String
+  email                 String
+  service               String
+  date                  DateTime
+  status                String   @default("pending")
+  paymentStatus         String   @default("unpaid")
+  stripeSessionId       String?
+  stripePaymentIntentId String?
+  createdAt             DateTime @default(now())
 }

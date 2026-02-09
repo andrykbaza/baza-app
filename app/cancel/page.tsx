@@ -7,7 +7,7 @@ export default function CancelPage() {
         </p>
         <h1 className="text-3xl font-semibold text-white">Депозит ще не сплачено.</h1>
         <p className="text-slate-300">
-          Ви можете повернутися до бронювання та повторити оплату, коли будете готові.
+          Ви можете повернутися до бронювання та повторити оплату депозиту, коли будете готові.
         </p>
       </header>
       <div className="rounded-3xl border border-rose-400/20 bg-rose-500/10 p-6 text-sm text-rose-100">

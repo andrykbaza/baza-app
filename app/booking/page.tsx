@@ -3,6 +3,13 @@
 import { useRouter } from "next/navigation";
 import { type ChangeEvent, type FormEvent, useMemo, useState } from "react";
 
+import {
+  DEFAULT_DEPOSIT_PERCENT,
+  bookingServices,
+  calculateDeposit,
+  getServicePricing
+} from "@/lib/bookingPricing";
+
 const steps = [
   {
     title: "Обрати послугу",
@@ -18,14 +25,7 @@ const steps = [
   }
 ];
 
-const services = [
-  { label: "Запис вокалу / інструментів", deposit: 1500 },
-  { label: "Зведення", deposit: 1200 },
-  { label: "Мастеринг", deposit: 900 },
-  { label: "Пісня під ключ", deposit: 2000 }
-];
-
-const defaultService = services[0];
+const defaultService = bookingServices[0];
 
 export default function BookingPage() {
   const router = useRouter();
@@ -42,8 +42,14 @@ export default function BookingPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const depositAmount = useMemo(() => {
-    return services.find((service) => service.label === formData.service)?.deposit ?? 1500;
+  const { totalPrice, depositAmount } = useMemo(() => {
+    const service = getServicePricing(formData.service);
+    const computedDeposit = calculateDeposit(service.totalPrice);
+
+    return {
+      totalPrice: service.totalPrice,
+      depositAmount: computedDeposit
+    };
   }, [formData.service]);
 
   const handleChange =
@@ -81,7 +87,9 @@ export default function BookingPage() {
         throw new Error("Booking ID is missing.");
       }
 
-      router.push(`/booking/confirmation?bookingId=${bookingId}&price=${depositAmount}`);
+      const createdDepositAmount = Number(data?.booking?.depositAmount ?? depositAmount);
+
+      router.push(`/booking/confirmation?bookingId=${bookingId}&price=${createdDepositAmount}`);
     } catch (error) {
       setErrorMessage("Не вдалося створити бронювання. Спробуйте ще раз.");
     } finally {
@@ -153,7 +161,7 @@ export default function BookingPage() {
               value={formData.service}
               onChange={handleChange("service")}
             >
-              {services.map((service) => (
+              {bookingServices.map((service) => (
                 <option key={service.label} value={service.label}>
                   {service.label}
                 </option>
@@ -202,9 +210,16 @@ export default function BookingPage() {
         {errorMessage ? (
           <p className="mt-4 text-sm text-rose-200">{errorMessage}</p>
         ) : (
-          <p className="mt-4 text-sm text-slate-300">
-            Депозит за бронювання: <span className="font-semibold text-white">{depositAmount} ₴</span>
-          </p>
+          <div className="mt-4 space-y-1 text-sm text-slate-300">
+            <p>
+              Орієнтовна вартість послуги: {" "}
+              <span className="font-semibold text-white">{totalPrice} ₴</span>
+            </p>
+            <p>
+              Депозит {Math.round(DEFAULT_DEPOSIT_PERCENT * 100)}%:{" "}
+              <span className="font-semibold text-white">{depositAmount} ₴</span>
+            </p>
+          </div>
         )}
         <button
           className="mt-6 rounded-full bg-purple-500 px-6 py-3 text-sm font-semibold text-white transition hover:bg-purple-400 disabled:cursor-not-allowed disabled:opacity-70"

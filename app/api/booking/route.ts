@@ -1,15 +1,24 @@
+import { getServicePricing, calculateDeposit } from "@/lib/bookingPricing";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+    const serviceLabel = String(body.service ?? "");
+    const servicePricing = getServicePricing(serviceLabel);
+    const depositAmount = calculateDeposit(servicePricing.totalPrice);
+
     const booking = await prisma.booking.create({
       data: {
         name: body.name ?? "",
         email: body.email ?? "",
-        service: body.service ?? "",
-        date: body.date ? new Date(body.date) : new Date()
+        service: serviceLabel,
+        date: body.date ? new Date(body.date) : new Date(),
+        status: "draft",
+        paymentStatus: "unpaid",
+        totalAmount: servicePricing.totalPrice,
+        depositAmount
       }
     });
 

@@ -61,6 +61,9 @@ export default function BookingPage() {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (isSubmitting) {
+      return;
+    }
     setIsSubmitting(true);
     setErrorMessage(null);
 
@@ -71,8 +74,12 @@ export default function BookingPage() {
         body: JSON.stringify({
           name: formData.name,
           email: formData.email,
+          phone: formData.phone,
           service: formData.service,
-          date: formData.date
+          date: formData.date,
+          time: formData.time,
+          duration: formData.duration,
+          comment: formData.comment
         })
       });
 
@@ -208,7 +215,9 @@ export default function BookingPage() {
           </label>
         </div>
         {errorMessage ? (
-          <p className="mt-4 text-sm text-rose-200">{errorMessage}</p>
+          <p className="mt-4 text-sm text-rose-200" role="alert">
+            {errorMessage}
+          </p>
         ) : (
           <div className="mt-4 space-y-1 text-sm text-slate-300">
             <p>

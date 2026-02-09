@@ -41,11 +41,14 @@ export async function POST(request: Request) {
           ? session.payment_intent
           : session.payment_intent?.id;
 
+      const paymentStatus =
+        typeof session.payment_status === "string" ? session.payment_status : "paid";
+
       await prisma.booking.update({
         where: { id: bookingId },
         data: {
-          status: "confirmed",
-          paymentStatus: "paid",
+          status: paymentStatus === "paid" ? "confirmed" : "pending_payment",
+          paymentStatus,
           stripeSessionId: session.id,
           stripePaymentIntentId: paymentIntentId ?? null
         }

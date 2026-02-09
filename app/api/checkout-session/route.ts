@@ -22,9 +22,8 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const bookingId = String(body.bookingId ?? "");
-    const price = Number(body.price ?? 0);
 
-    if (!bookingId || !Number.isFinite(price) || price <= 0) {
+    if (!bookingId) {
       return NextResponse.json({ error: "Invalid booking payload." }, { status: 400 });
     }
 
@@ -34,6 +33,12 @@ export async function POST(request: Request) {
 
     if (!booking) {
       return NextResponse.json({ error: "Booking not found." }, { status: 404 });
+    }
+
+    const depositAmount = booking.depositAmount ?? 0;
+
+    if (!Number.isFinite(depositAmount) || depositAmount <= 0) {
+      return NextResponse.json({ error: "Invalid booking deposit." }, { status: 400 });
     }
 
     const session = await stripe.checkout.sessions.create({
@@ -46,7 +51,7 @@ export async function POST(request: Request) {
           quantity: 1,
           price_data: {
             currency: "uah",
-            unit_amount: Math.round(price * 100),
+            unit_amount: Math.round(depositAmount * 100),
             product_data: {
               name: "Депозит за бронювання"
             }
@@ -62,7 +67,8 @@ export async function POST(request: Request) {
       where: { id: bookingId },
       data: {
         stripeSessionId: session.id,
-        paymentStatus: "pending"
+        paymentStatus: "pending",
+        status: "pending_payment"
       }
     });
 

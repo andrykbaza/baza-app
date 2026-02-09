@@ -3,6 +3,8 @@
 import { useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 
+import { DEFAULT_DEPOSIT_PERCENT } from "@/lib/bookingPricing";
+
 export default function BookingConfirmationPage() {
   const searchParams = useSearchParams();
   const bookingId = searchParams.get("bookingId") ?? "";
@@ -24,7 +26,7 @@ export default function BookingConfirmationPage() {
       const response = await fetch("/api/checkout-session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bookingId, price })
+        body: JSON.stringify({ bookingId })
       });
 
       const data = await response.json();
@@ -49,7 +51,8 @@ export default function BookingConfirmationPage() {
         </p>
         <h1 className="text-3xl font-semibold text-white">Ваша заявка отримана.</h1>
         <p className="text-slate-300">
-          Щоб закріпити час у розкладі, сплатіть депозит. Після оплати ми підтвердимо бронь та
+          Щоб закріпити час у розкладі, сплатіть депозит {" "}
+          {Math.round(DEFAULT_DEPOSIT_PERCENT * 100)}%. Після оплати ми підтвердимо бронь та
           надішлемо деталі.
         </p>
       </header>
